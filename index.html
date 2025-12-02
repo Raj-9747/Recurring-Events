@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,30 +9,70 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* Day chips */
-        .day-chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .65rem; border:1px solid #e5e7eb; border-radius:.5rem; cursor:pointer; transition:all .18s ease; background:#fff}
-        .day-chip:hover{ transform:translateY(-2px); box-shadow:0 4px 10px rgba(2,6,23,0.04)}
-        .day-chip.selected{ background:#1e40af; color:#fff; border-color:transparent }
+        .day-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .35rem .65rem;
+            border: 1px solid #e5e7eb;
+            border-radius: .5rem;
+            cursor: pointer;
+            transition: all .18s ease;
+            background: #fff
+        }
+
+        .day-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(2, 6, 23, 0.04)
+        }
+
+        .day-chip.selected {
+            background: #1e40af;
+            color: #fff;
+            border-color: transparent
+        }
 
         /* Table row hover subtle lift */
-        tbody tr{ transition:transform .12s ease, box-shadow .12s ease }
-        tbody tr:hover{ transform:translateY(-3px); box-shadow:0 8px 20px rgba(2,6,23,0.06) }
+        tbody tr {
+            transition: transform .12s ease, box-shadow .12s ease
+        }
+
+        tbody tr:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(2, 6, 23, 0.06)
+        }
 
         /* Action buttons */
-        .action-btn{ transition:transform .12s ease, color .12s ease }
-        .action-btn:hover{ transform:translateY(-2px) }
+        .action-btn {
+            transition: transform .12s ease, color .12s ease
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px)
+        }
 
         /* Disabled submit appearance */
-        .disabled-btn{ opacity:.6; cursor:not-allowed; transform:none }
+        .disabled-btn {
+            opacity: .6;
+            cursor: not-allowed;
+            transform: none
+        }
 
         /* Message styles (success/error) */
-        .msg-success{ color:#065f46 }
-        .msg-error{ color:#991b1b }
+        .msg-success {
+            color: #065f46
+        }
+
+        .msg-error {
+            color: #991b1b
+        }
     </style>
 </head>
+
 <body class="bg-gray-100 p-10">
 
     <div class="max-w-5xl mx-auto">
-        
+
         <!-- FORM SECTION -->
         <div class="bg-white p-8 rounded shadow-lg mb-10">
             <h2 class="text-2xl font-bold mb-6 text-gray-800" id="formTitle">Create Recurring Event Series</h2>
@@ -42,7 +83,7 @@
                 <!-- Team Member -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Team Member</label>
-                    <input type="text" value="Shafoli" disabled 
+                    <input type="text" value="Shafoli" disabled
                         class="mt-1 block w-full p-2 border border-gray-300 rounded bg-gray-100 text-gray-500 cursor-not-allowed">
                 </div>
 
@@ -57,13 +98,20 @@
                 <div id="daysContainer">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Select Days (Multiple)</label>
                     <div class="flex flex-wrap gap-3">
-                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="1" class="mr-2"> <span class="day-text">Mon</span></label>
-                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="2" class="mr-2"> <span class="day-text">Tue</span></label>
-                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="3" class="mr-2"> <span class="day-text">Wed</span></label>
-                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="4" class="mr-2"> <span class="day-text">Thu</span></label>
-                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="5" class="mr-2"> <span class="day-text">Fri</span></label>
-                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="6" class="mr-2"> <span class="day-text">Sat</span></label>
-                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="0" class="mr-2"> <span class="day-text">Sun</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="1"
+                                class="mr-2"> <span class="day-text">Mon</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="2"
+                                class="mr-2"> <span class="day-text">Tue</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="3"
+                                class="mr-2"> <span class="day-text">Wed</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="4"
+                                class="mr-2"> <span class="day-text">Thu</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="5"
+                                class="mr-2"> <span class="day-text">Fri</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="6"
+                                class="mr-2"> <span class="day-text">Sat</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="0"
+                                class="mr-2"> <span class="day-text">Sun</span></label>
                     </div>
                 </div>
 
@@ -71,11 +119,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Start Time</label>
-                        <input type="time" id="startTime" required class="mt-1 block w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition">
+                        <input type="time" id="startTime" required
+                            class="mt-1 block w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">End Time</label>
-                        <input type="time" id="endTime" required class="mt-1 block w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition">
+                        <input type="time" id="endTime" required
+                            class="mt-1 block w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition">
                     </div>
                 </div>
 
@@ -97,16 +147,21 @@
         <!-- LIST SECTION -->
         <div class="bg-white p-8 rounded shadow-lg">
             <h3 class="text-xl font-bold mb-4 text-gray-800">Active Event Series</h3>
-            <p class="text-sm text-gray-500 mb-4">Note: This list groups your events. Editing/Deleting here affects all 50 occurrences.</p>
-            
+            <p class="text-sm text-gray-500 mb-4">Note: This list groups your events. Editing/Deleting here affects all
+                50 occurrences.</p>
+
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Series Info</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Series Info</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions</th>
                         </tr>
                     </thead>
                     <tbody id="taskTableBody" class="bg-white divide-y divide-gray-200">
@@ -119,7 +174,7 @@
 
     <script>
         // --- CONFIGURATION ---
-        const supabaseUrl = 'https://fraheqsgfwbjnmmodzfa.supabase.co'; 
+        const supabaseUrl = 'https://fraheqsgfwbjnmmodzfa.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyYWhlcXNnZndiam5tbW9kemZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTc3NzQsImV4cCI6MjA3MzMzMzc3NH0.yCyUsd27MbluxEhmZ2cjp6gcpgIJyHCjR7I55WU-R90';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -137,7 +192,7 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             messageDiv.classList.add('hidden');
-            
+
             const batchId = document.getElementById('editBatchId').value;
             const title = document.getElementById('eventTitle').value;
             const startTime = document.getElementById('startTime').value;
@@ -149,10 +204,10 @@
                     // Update ALL rows that share this batch_id
                     const { error } = await supabaseClient
                         .from('recurring_tasks')
-                        .update({ 
-                            event_title: title, 
-                            start_time: startTime, 
-                            end_time: endTime 
+                        .update({
+                            event_title: title,
+                            start_time: startTime,
+                            end_time: endTime
                         })
                         .eq('batch_id', batchId);
 
@@ -168,9 +223,19 @@
             }
 
             // --- CREATE MODE (Insert 50 new items) ---
+            const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const checkboxes = document.querySelectorAll('input[name="day"]:checked');
+            
             let selectedDays = [];
-            checkboxes.forEach(cb => selectedDays.push(parseInt(cb.value)));
+            let selectedDayNames = [];
+            
+            checkboxes.forEach(cb => {
+                const val = parseInt(cb.value);
+                selectedDays.push(val);
+                selectedDayNames.push(dayMap[val]); // <--- NEW LINE
+            });
+            
+            const selectedDaysString = selectedDayNames.join(', '); 
 
             if (selectedDays.length === 0) {
                 alert("Please select at least one day of the week.");
@@ -188,17 +253,21 @@
             while (count < 50) {
                 let futureDate = new Date();
                 futureDate.setDate(futureDate.getDate() + dayOffset);
-                
+
                 if (selectedDays.includes(futureDate.getDay())) {
-                    const formattedDate = futureDate.toISOString().split('T')[0];
-                    
+                    const year = futureDate.getFullYear();
+                    const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(futureDate.getDate()).padStart(2, '0');
+                    const formattedDate = `${year}-${month}-${day}`;
+
                     tasksToInsert.push({
                         team_member: 'Shafoli',
                         event_title: title,
                         event_date: formattedDate,
                         start_time: startTime,
                         end_time: endTime,
-                        batch_id: newBatchId // <--- Linking them together
+                        batch_id: newBatchId,
+                        selected_days: selectedDaysString 
                     });
                     count++;
                 }
@@ -234,7 +303,7 @@
             }
 
             tableBody.innerHTML = '';
-            
+
             // Logic to Group by Batch ID
             // We use a Map to keep only the first occurrence of every batch_id we see
             const uniqueSeries = new Map();
@@ -243,10 +312,10 @@
                 // If this task has a batch_id and we haven't seen it yet, save it
                 if (task.batch_id && !uniqueSeries.has(task.batch_id)) {
                     uniqueSeries.set(task.batch_id, task);
-                } 
+                }
                 // Compatibility for old tasks without batch_id (show them individually)
                 else if (!task.batch_id) {
-                    uniqueSeries.set(task.id, task); 
+                    uniqueSeries.set(task.id, task);
                 }
             });
 
@@ -254,7 +323,7 @@
             uniqueSeries.forEach(task => {
                 const isSeries = !!task.batch_id;
                 const label = isSeries ? `<span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Series (50)</span>` : `<span class="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded">Single</span>`;
-                
+
                 // Show date info
                 const dateInfo = isSeries ? `Starts: ${task.event_date}` : `${task.event_date}`;
 
@@ -283,10 +352,10 @@
 
         // --- DELETE BATCH ---
         async function deleteBatch(batchId, id) {
-            const msg = batchId 
-                ? "This will delete all 50 events in this series. Are you sure?" 
+            const msg = batchId
+                ? "This will delete all 50 events in this series. Are you sure?"
                 : "Delete this single event?";
-            
+
             if (!confirm(msg)) return;
 
             let query = supabaseClient.from('recurring_tasks').delete();
@@ -320,9 +389,9 @@
             formTitle.textContent = batchId ? "Edit Series (Updates all 50)" : "Edit Event";
             submitBtn.textContent = batchId ? "Update All 50 Events" : "Update Event";
             submitBtn.className = "flex-1 bg-indigo-600 text-white p-3 rounded hover:bg-indigo-700 font-semibold transition";
-            
+
             cancelBtn.classList.remove('hidden');
-            
+
             // Hide "Days selection" because changing days (e.g. Mon->Tue) for existing records 
             // is very complex math. We only allow editing Time and Title for now.
             document.getElementById('daysContainer').classList.add('opacity-50', 'pointer-events-none');
@@ -334,13 +403,13 @@
         function resetForm() {
             form.reset();
             document.getElementById('editBatchId').value = '';
-            
+
             formTitle.textContent = "Create Recurring Event Series";
             submitBtn.textContent = "Generate 50 Events";
             submitBtn.className = "flex-1 bg-blue-600 text-white p-3 rounded hover:bg-blue-700 font-semibold transition";
 
             cancelBtn.classList.add('hidden');
-            
+
             // Re-enable days
             document.getElementById('daysContainer').classList.remove('opacity-50', 'pointer-events-none');
             messageDiv.classList.add('hidden');
@@ -392,4 +461,5 @@
         });
     </script>
 </body>
+
 </html>
