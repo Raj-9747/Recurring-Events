@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recurring Task Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Day chips */
+        .day-chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .65rem; border:1px solid #e5e7eb; border-radius:.5rem; cursor:pointer; transition:all .18s ease; background:#fff}
+        .day-chip:hover{ transform:translateY(-2px); box-shadow:0 4px 10px rgba(2,6,23,0.04)}
+        .day-chip.selected{ background:#1e40af; color:#fff; border-color:transparent }
+
+        /* Table row hover subtle lift */
+        tbody tr{ transition:transform .12s ease, box-shadow .12s ease }
+        tbody tr:hover{ transform:translateY(-3px); box-shadow:0 8px 20px rgba(2,6,23,0.06) }
+
+        /* Action buttons */
+        .action-btn{ transition:transform .12s ease, color .12s ease }
+        .action-btn:hover{ transform:translateY(-2px) }
+
+        /* Disabled submit appearance */
+        .disabled-btn{ opacity:.6; cursor:not-allowed; transform:none }
+
+        /* Message styles (success/error) */
+        .msg-success{ color:#065f46 }
+        .msg-error{ color:#991b1b }
+    </style>
+</head>
+<body class="bg-gray-100 p-10">
+
+    <div class="max-w-5xl mx-auto">
+        
+        <!-- FORM SECTION -->
+        <div class="bg-white p-8 rounded shadow-lg mb-10">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800" id="formTitle">Create Recurring Event Series</h2>
+
+            <form id="taskForm" class="space-y-4">
+                <input type="hidden" id="editBatchId"> <!-- Stores the Batch ID for editing -->
+
+                <!-- Team Member -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Team Member</label>
+                    <input type="text" value="Shafoli" disabled 
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded bg-gray-100 text-gray-500 cursor-not-allowed">
+                </div>
+
+                <!-- Event Title -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Event Title</label>
+                    <input type="text" id="eventTitle" required placeholder="e.g. Client Meeting"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition">
+                </div>
+
+                <!-- Days of Week -->
+                <div id="daysContainer">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Days (Multiple)</label>
+                    <div class="flex flex-wrap gap-3">
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="1" class="mr-2"> <span class="day-text">Mon</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="2" class="mr-2"> <span class="day-text">Tue</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="3" class="mr-2"> <span class="day-text">Wed</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="4" class="mr-2"> <span class="day-text">Thu</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="5" class="mr-2"> <span class="day-text">Fri</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="6" class="mr-2"> <span class="day-text">Sat</span></label>
+                        <label class="day-chip flex items-center"><input type="checkbox" name="day" value="0" class="mr-2"> <span class="day-text">Sun</span></label>
+                    </div>
+                </div>
+
+                <!-- Timing -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Start Time</label>
+                        <input type="time" id="startTime" required class="mt-1 block w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">End Time</label>
+                        <input type="time" id="endTime" required class="mt-1 block w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition">
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-2">
+                    <button type="submit" id="submitBtn"
+                        class="flex-1 bg-blue-600 text-white p-3 rounded hover:bg-blue-700 font-semibold transition transform hover:scale-105">
+                        Generate 50 Events
+                    </button>
+                    <button type="button" id="cancelBtn" onclick="resetForm()"
+                        class="hidden flex-none bg-gray-500 text-white p-3 rounded hover:bg-gray-600 font-semibold transition">
+                        Cancel Edit
+                    </button>
+                </div>
+            </form>
+            <div id="message" class="mt-4 text-center font-medium hidden"></div>
+        </div>
+
+        <!-- LIST SECTION -->
+        <div class="bg-white p-8 rounded shadow-lg">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Active Event Series</h3>
+            <p class="text-sm text-gray-500 mb-4">Note: This list groups your events. Editing/Deleting here affects all 50 occurrences.</p>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Series Info</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taskTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Rows will be injected here via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const supabaseUrl = 'https://fraheqsgfwbjnmmodzfa.supabase.co'; 
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyYWhlcXNnZndiam5tbW9kemZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTc3NzQsImV4cCI6MjA3MzMzMzc3NH0.yCyUsd27MbluxEhmZ2cjp6gcpgIJyHCjR7I55WU-R90';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        const form = document.getElementById('taskForm');
+        const messageDiv = document.getElementById('message');
+        const tableBody = document.getElementById('taskTableBody');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const formTitle = document.getElementById('formTitle');
+
+        // Load data on start
+        fetchTasks();
+
+        // --- SUBMIT HANDLER ---
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            messageDiv.classList.add('hidden');
+            
+            const batchId = document.getElementById('editBatchId').value;
+            const title = document.getElementById('eventTitle').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+
+            // --- UPDATE MODE (Edit all 50 items) ---
+            if (batchId) {
+                try {
+                    // Update ALL rows that share this batch_id
+                    const { error } = await supabaseClient
+                        .from('recurring_tasks')
+                        .update({ 
+                            event_title: title, 
+                            start_time: startTime, 
+                            end_time: endTime 
+                        })
+                        .eq('batch_id', batchId);
+
+                    if (error) throw error;
+                    showMessage("Series updated successfully!", "green");
+                    resetForm();
+                    fetchTasks();
+                } catch (err) {
+                    console.error(err);
+                    showMessage("Error updating series.", "red");
+                }
+                return;
+            }
+
+            // --- CREATE MODE (Insert 50 new items) ---
+            const checkboxes = document.querySelectorAll('input[name="day"]:checked');
+            let selectedDays = [];
+            checkboxes.forEach(cb => selectedDays.push(parseInt(cb.value)));
+
+            if (selectedDays.length === 0) {
+                alert("Please select at least one day of the week.");
+                return;
+            }
+
+            // Generate a unique Batch ID for this set of 50 tasks
+            // We use Date.now() + random number to ensure uniqueness
+            const newBatchId = 'batch_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+
+            const tasksToInsert = [];
+            let count = 0;
+            let dayOffset = 0;
+
+            while (count < 50) {
+                let futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + dayOffset);
+                
+                if (selectedDays.includes(futureDate.getDay())) {
+                    const formattedDate = futureDate.toISOString().split('T')[0];
+                    
+                    tasksToInsert.push({
+                        team_member: 'Shafoli',
+                        event_title: title,
+                        event_date: formattedDate,
+                        start_time: startTime,
+                        end_time: endTime,
+                        batch_id: newBatchId // <--- Linking them together
+                    });
+                    count++;
+                }
+                dayOffset++;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('recurring_tasks')
+                    .insert(tasksToInsert);
+
+                if (error) throw error;
+                showMessage(`Success! Created a series of 50 events.`, "green");
+                form.reset();
+                fetchTasks();
+            } catch (err) {
+                console.error(err);
+                showMessage("Error creating tasks.", "red");
+            }
+        });
+
+        // --- FETCH & DISPLAY TASKS (GROUPED) ---
+        async function fetchTasks() {
+            // Fetch everything
+            const { data, error } = await supabaseClient
+                .from('recurring_tasks')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching:', error);
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            
+            // Logic to Group by Batch ID
+            // We use a Map to keep only the first occurrence of every batch_id we see
+            const uniqueSeries = new Map();
+
+            data.forEach(task => {
+                // If this task has a batch_id and we haven't seen it yet, save it
+                if (task.batch_id && !uniqueSeries.has(task.batch_id)) {
+                    uniqueSeries.set(task.batch_id, task);
+                } 
+                // Compatibility for old tasks without batch_id (show them individually)
+                else if (!task.batch_id) {
+                    uniqueSeries.set(task.id, task); 
+                }
+            });
+
+            // Render the unique series
+            uniqueSeries.forEach(task => {
+                const isSeries = !!task.batch_id;
+                const label = isSeries ? `<span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Series (50)</span>` : `<span class="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded">Single</span>`;
+                
+                // Show date info
+                const dateInfo = isSeries ? `Starts: ${task.event_date}` : `${task.event_date}`;
+
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${label} <br> <span class="text-xs text-gray-400">${dateInfo}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${task.event_title}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${task.start_time} - ${task.end_time}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="editBatch('${task.batch_id || ''}', ${task.id}, '${task.event_title}', '${task.start_time}', '${task.end_time}')" 
+                                class="text-indigo-600 hover:text-indigo-900 mr-4">
+                                ${isSeries ? 'Edit All' : 'Edit'}
+                            </button>
+                            <button onclick="deleteBatch('${task.batch_id || ''}', ${task.id})" 
+                                class="text-red-600 hover:text-red-900">
+                                ${isSeries ? 'Delete All' : 'Delete'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // --- DELETE BATCH ---
+        async function deleteBatch(batchId, id) {
+            const msg = batchId 
+                ? "This will delete all 50 events in this series. Are you sure?" 
+                : "Delete this single event?";
+            
+            if (!confirm(msg)) return;
+
+            let query = supabaseClient.from('recurring_tasks').delete();
+
+            // Delete by Batch ID if it exists, otherwise by single ID
+            if (batchId) {
+                query = query.eq('batch_id', batchId);
+            } else {
+                query = query.eq('id', id);
+            }
+
+            const { error } = await query;
+
+            if (error) {
+                alert('Error deleting');
+                console.error(error);
+            } else {
+                fetchTasks();
+            }
+        }
+
+        // --- EDIT BATCH (Setup Form) ---
+        function editBatch(batchId, id, title, start, end) {
+            // Populate fields
+            document.getElementById('editBatchId').value = batchId;
+            document.getElementById('eventTitle').value = title;
+            document.getElementById('startTime').value = start;
+            document.getElementById('endTime').value = end;
+
+            // UI Changes
+            formTitle.textContent = batchId ? "Edit Series (Updates all 50)" : "Edit Event";
+            submitBtn.textContent = batchId ? "Update All 50 Events" : "Update Event";
+            submitBtn.className = "flex-1 bg-indigo-600 text-white p-3 rounded hover:bg-indigo-700 font-semibold transition";
+            
+            cancelBtn.classList.remove('hidden');
+            
+            // Hide "Days selection" because changing days (e.g. Mon->Tue) for existing records 
+            // is very complex math. We only allow editing Time and Title for now.
+            document.getElementById('daysContainer').classList.add('opacity-50', 'pointer-events-none');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- RESET FORM ---
+        function resetForm() {
+            form.reset();
+            document.getElementById('editBatchId').value = '';
+            
+            formTitle.textContent = "Create Recurring Event Series";
+            submitBtn.textContent = "Generate 50 Events";
+            submitBtn.className = "flex-1 bg-blue-600 text-white p-3 rounded hover:bg-blue-700 font-semibold transition";
+
+            cancelBtn.classList.add('hidden');
+            
+            // Re-enable days
+            document.getElementById('daysContainer').classList.remove('opacity-50', 'pointer-events-none');
+            messageDiv.classList.add('hidden');
+        }
+
+        function showMessage(text, color) {
+            messageDiv.textContent = text;
+            // Use semantic helper classes defined above for consistent coloring
+            messageDiv.className = 'mt-4 text-center font-medium block ' + (color === 'green' ? 'msg-success' : 'msg-error');
+            // keep visible for a few seconds
+            setTimeout(() => { /* leave message visible, user can still see it */ }, 3500);
+        }
+
+        // Enhance day labels (toggle visual state) and add basic live validation
+        document.addEventListener('DOMContentLoaded', () => {
+            const dayLabels = document.querySelectorAll('#daysContainer .day-chip');
+            dayLabels.forEach(label => {
+                const cb = label.querySelector('input[type="checkbox"]');
+                if (!cb) return;
+                // Initialize selected state
+                if (cb.checked) label.classList.add('selected');
+                // Toggle visual selected class when checkbox changes
+                cb.addEventListener('change', () => {
+                    label.classList.toggle('selected', cb.checked);
+                    validateForm();
+                });
+            });
+
+            const titleInput = document.getElementById('eventTitle');
+            const startInput = document.getElementById('startTime');
+            const endInput = document.getElementById('endTime');
+
+            function validateForm() {
+                const title = titleInput.value.trim();
+                const days = document.querySelectorAll('input[name="day"]:checked').length;
+                const start = startInput.value;
+                const end = endInput.value;
+                let ok = title.length > 0 && days > 0 && start && end && (start < end);
+                submitBtn.disabled = !ok;
+                if (submitBtn.disabled) submitBtn.classList.add('disabled-btn'); else submitBtn.classList.remove('disabled-btn');
+            }
+
+            titleInput.addEventListener('input', validateForm);
+            startInput.addEventListener('input', validateForm);
+            endInput.addEventListener('input', validateForm);
+            document.querySelectorAll('input[name="day"]').forEach(cb => cb.addEventListener('change', validateForm));
+
+            validateForm();
+        });
+    </script>
+</body>
+</html>
