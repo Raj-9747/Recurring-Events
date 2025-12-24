@@ -167,6 +167,7 @@
             const title = document.getElementById("eventTitle").value;
             const startTime = document.getElementById("startTime").value;
             const endTime = document.getElementById("endTime").value;
+            const editBatchId = document.getElementById("editBatchId").value;
 
             const checkboxes = document.querySelectorAll("input[name='day']:checked");
 
@@ -178,7 +179,21 @@
                 return;
             }
 
-            const batchId = "batch_" + Date.now();
+            // If editing, update existing tasks
+            if (editBatchId) {
+                // Delete existing tasks for this batch
+                const { error: deleteError } = await supabaseClient
+                    .from("recurring_tasks")
+                    .delete()
+                    .eq("batch_id", editBatchId);
+
+                if (deleteError) {
+                    showMessage("Error updating tasks", "red");
+                    return;
+                }
+            }
+
+            const batchId = editBatchId || "batch_" + Date.now();
             const tasksToInsert = [];
 
             let count = 0, offset = 0;
@@ -211,8 +226,8 @@
                 return;
             }
 
-            showMessage("50 recurring tasks created in UTC!", "green");
-            taskForm.reset();
+            showMessage(editBatchId ? "Events updated successfully!" : "50 recurring tasks created in UTC!", "green");
+            resetForm();
             fetchTasks();
         });
 
@@ -221,25 +236,110 @@
 
             taskTableBody.innerHTML = "";
 
+            // Group tasks by batch_id
+            const batches = {};
             data.forEach(task => {
+                if (!batches[task.batch_id]) {
+                    batches[task.batch_id] = [];
+                }
+                batches[task.batch_id].push(task);
+            });
+
+            // Display one row per batch
+            Object.keys(batches).forEach(batchId => {
+                const batchTasks = batches[batchId];
+                const firstTask = batchTasks[0];
+                
+                // Get unique days from the batch
+                const days = [...new Set(batchTasks.map(t => {
+                    const date = new Date(t.event_date);
+                    return date.getDay();
+                }))].sort((a, b) => a - b);
+
                 taskTableBody.insertAdjacentHTML("beforeend", `
                     <tr>
-                        <td class="px-6 py-4">${task.batch_id}</td>
-                        <td class="px-6 py-4">${task.event_title}</td>
-                        <td class="px-6 py-4">${task.start_time} - ${task.end_time}</td>
-                        <td class="px-6 py-4 text-blue-600 cursor-pointer">Edit</td>
+                        <td class="px-6 py-4">${firstTask.batch_id}</td>
+                        <td class="px-6 py-4">${firstTask.event_title}</td>
+                        <td class="px-6 py-4">${firstTask.start_time} - ${firstTask.end_time}</td>
+                        <td class="px-6 py-4">
+                            <button onclick="editBatch('${batchId}')" class="text-blue-600 hover:text-blue-800 cursor-pointer font-medium">Edit</button>
+                        </td>
                     </tr>
                 `);
             });
         }
 
+        async function editBatch(batchId) {
+            // Fetch all tasks for this batch
+            const { data, error } = await supabaseClient
+                .from("recurring_tasks")
+                .select("*")
+                .eq("batch_id", batchId);
+
+            if (error || !data || data.length === 0) {
+                showMessage("Error loading batch data", "red");
+                return;
+            }
+
+            const firstTask = data[0];
+            
+            // Get unique days from the batch
+            const days = [...new Set(data.map(t => {
+                const date = new Date(t.event_date);
+                return date.getDay();
+            }))];
+
+            // Populate form
+            document.getElementById("editBatchId").value = batchId;
+            document.getElementById("eventTitle").value = firstTask.event_title;
+            
+            // Convert UTC time back to local time for display
+            const startTimeUTC = firstTask.start_time;
+            const endTimeUTC = firstTask.end_time;
+            
+            // Create a date object and set UTC time, then get local time
+            const tempDate = new Date();
+            const [startH, startM] = startTimeUTC.split(":").map(Number);
+            const [endH, endM] = endTimeUTC.split(":").map(Number);
+            
+            tempDate.setUTCHours(startH, startM, 0, 0);
+            const localStart = new Date(tempDate);
+            const startTimeStr = String(localStart.getHours()).padStart(2, '0') + ':' + String(localStart.getMinutes()).padStart(2, '0');
+            
+            tempDate.setUTCHours(endH, endM, 0, 0);
+            const localEnd = new Date(tempDate);
+            const endTimeStr = String(localEnd.getHours()).padStart(2, '0') + ':' + String(localEnd.getMinutes()).padStart(2, '0');
+            
+            document.getElementById("startTime").value = startTimeStr;
+            document.getElementById("endTime").value = endTimeStr;
+
+            // Check the day checkboxes
+            document.querySelectorAll("input[name='day']").forEach(cb => {
+                cb.checked = days.includes(parseInt(cb.value));
+            });
+
+            // Update UI for edit mode
+            document.getElementById("formTitle").textContent = "Edit Recurring Event Series";
+            document.getElementById("submitBtn").textContent = "Update Events";
+            document.getElementById("cancelBtn").classList.remove("hidden");
+
+            // Scroll to form
+            document.querySelector(".bg-white.p-8.rounded.shadow-lg.mb-10").scrollIntoView({ behavior: "smooth" });
+        }
+
         function showMessage(msg, type) {
             messageDiv.textContent = msg;
             messageDiv.className = `mt-4 text-center font-medium ${type === "green" ? "msg-success" : "msg-error"}`;
+            messageDiv.classList.remove("hidden");
         }
 
         function resetForm() {
             taskForm.reset();
+            document.getElementById("editBatchId").value = "";
+            document.getElementById("formTitle").textContent = "Create Recurring Event Series";
+            document.getElementById("submitBtn").textContent = "Generate 50 Events";
+            document.getElementById("cancelBtn").classList.add("hidden");
+            messageDiv.classList.add("hidden");
         }
     </script>
 
